@@ -1,5 +1,3 @@
-# coding: utf-8
-# encoding: utf-8
 require 'presto'
 require './beatme'
 
@@ -12,6 +10,3 @@ class App
     end
 
 end
-
-Presto.http.encoding 'UTF-8'
-
