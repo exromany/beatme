@@ -13,15 +13,22 @@ class App
     view.layout :main
 
     http.before do
-        @table = BeatMe::Table.new unless @table
+        $table = BeatMe::Table.new unless $table
     end
 
     def index
-        view.render
+        view.render table: $table, my_place: http.session[:place]
     end
 
-    def login
-        http.session[:player] = @table.sit_up unless http.session[:player]
+    def signin
+        place = http.params[:place].to_i - 1
+        http.session[:place] = $table.sign_in(place) unless http.session[:place]
+        http.redirect http.route
+    end
+
+    def signout
+        $table.sign_out http.session[:place] if http.session[:place]
+        http.session[:place] = nil
         http.redirect http.route
     end
 

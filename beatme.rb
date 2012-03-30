@@ -17,65 +17,79 @@ module BeatMe
 
     end
 
-    class Player
-        attr_reader :key
+    class Place
         attr_accessor :cards
 
-        def initialize key
-            @key, @cards = key, []
+        def initialize
+            @empty, @cards = true, []
         end
 
-        def to_s
-            "player ##{@key}" + (@cards.any? ? "with #{@cards.join(', ')}" : '')
+        def empty?
+            @empty
+        end
+
+        def take
+            @empty = false
+            self
+        end
+
+        def realize
+            cards, @cards, @empty = @cards, [], true
+            cards
         end
 
     end
 
     class Table
-        attr_reader :cards
+        attr_reader :cards, :places
 
         def initialize
             @game = :off
-            @players = {}
+            @places = Array.new(MaxPlayers){ |i| Place.new }
             @cards = []
             CardValues.each_index do |v|
                 CardSuits.each_index do |s|
                     @cards << Card.new(v, s)
                 end
             end
-            @cards.shuffle!
+        end
+
+        def empty_places
+            @places.select{ |place| place.empty? }.size
+        end
+
+        def busy_places
+            @places.size - self.empty_places
         end
 
         def to_s
             "cards: #{@cards.size}<br>\
-            players: #{@players.size}<br>\
-            game: #{@game}"
+            game: #{@game}<br>\
+            places: #{self.empty_places} of #{@places.size} is empty"
         end
 
-        def sit_up key = nil
-            if key.class != Fixnum || !key.between?(1, MaxPlayers) ||
-                @players.has_key?(key)
+        def sign_in key = nil
+            if key.class != Fixnum || !key.between?(1, @places.size) ||
+                !@places[key].empty?
                 key = nil
-                (1..MaxPlayers).each do |i|
-                    key = i and break unless @players.has_key?(i)
+                @places.each_with_index do |place, i|
+                    key = i and break if place.empty?
                 end
             end
-            @players[key] = Player.new(key) if key
+            @places[key].take
         end
 
-        def out player
-            if @players.delete player.key
-                @cards.unshift(player.cards).flatten!
-                player = nil
-                @game = :off if @players.empty?
-                self
+        def sign_out place
+            if !place.empty?
+                @cards.unshift(place.realize).flatten!
+                @game = :off if self.busy_places <= 1
             end
         end
 
         def start
-            if @game == :off && @players.any?
+            if @game == :off && self.busy_places > 1
                 @cards.shuffle!
-                @players.each{ |i, p| p.cards = @cards.pop(2) }
+                @places.each{ |place| place.cards = @cards.pop(2) }
                 @game = :on
             end
         end
