@@ -32,6 +32,7 @@ module BeatMe
     end
 
     class Table
+        attr_reader :cards
 
         def initialize
             @game = :off
@@ -42,11 +43,13 @@ module BeatMe
                     @cards << Card.new(v, s)
                 end
             end
+            @cards.shuffle!
         end
 
         def to_s
-
-            "cards: #{@cards.size} \nplayers: #{@players.size} \ngame: #{@game}\n"
+            "cards: #{@cards.size}<br>\
+            players: #{@players.size}<br>\
+            game: #{@game}"
         end
 
         def sit_up key = nil
