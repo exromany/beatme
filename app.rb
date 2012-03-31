@@ -28,7 +28,7 @@ class App
 
     def signout
         $table.sign_out http.session[:place] if http.session[:place]
-        http.session[:place] = nil
+        http.session.delete :place
         http.redirect http.route
     end
 
