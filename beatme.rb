@@ -11,7 +11,7 @@ module BeatMe
     end
 
     def to_s
-      Card::FACES[@face] + Card::SUITS[@suit]
+      FACES[@face] + SUITS[@suit]
     end
 
     def <=> another_card
@@ -150,9 +150,11 @@ module BeatMe
   class Table
     attr_reader :cards, :places
 
+    MAX_PLAYERS = 5
+
     def initialize
       @game = :off
-      @places = Array.new(MaxPlayers){ |i| Place.new }
+      @places = Array.new(MAX_PLAYERS){ |i| Place.new }
       @cards = []
       Card::FACES[1..-1].each_index do |f|
         Card::SUITS.each_index do |s|
