@@ -207,7 +207,7 @@ module BeatMe
     def start
       if @game == :off && busy_places > 1
         @cards.shuffle!
-        @places.rotate(-(@dealer + 1 || 0)).each_with_index do |place, i| 
+        @places.rotate(-(@dealer || -1) - 1).each_with_index do |place, i|
           @dealer = i and break unless place.empty?
         end
         @bank = 0
@@ -224,7 +224,7 @@ module BeatMe
     end
 
     def set_blinds
-      @place.rotate(-@dealer-1).cycle(2).to_a.inject do |b, place|
+      @places.rotate(-@dealer-1).cycle(2).to_a.inject do |b, place|
         if place.empty?
           b
         else
