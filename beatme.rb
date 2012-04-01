@@ -39,7 +39,7 @@ module BeatMe
   class Hand
     attr_reader :value
 
-    def initialize cards
+    def initialize cards, rank = nil
       @cards = case cards
                when Array
                  cards
@@ -49,7 +49,7 @@ module BeatMe
                  end
                end
       raise "Hands with #{@cards.size} cards is not supported" if @cards.size != 5
-      @value = process
+      @value = rank ? [rank, cards] : processing
     end
 
     def rank
@@ -68,7 +68,7 @@ module BeatMe
     end
 
     def by_rank
-      Hand.new(@value[1])
+      Hand.new(@value[1], @value[0])
     end
 
     def cards_by_face
@@ -90,7 +90,7 @@ module BeatMe
 
     private
 
-    def process
+    def processing
       cards = cards_by_face
       faces, suits = cards.transpose
       flush = suits.uniq.size == 1
@@ -121,7 +121,7 @@ module BeatMe
     attr_accessor :cards
 
     def initialize
-      @empty, @cards = true, []
+      @empty, @cards, @stack = true, [], 0
     end
 
     def empty?
@@ -129,20 +129,26 @@ module BeatMe
     end
 
     def take
-      @empty = false
+      @stack, @empty = Table::START_STACK, false
       self
     end
 
     def realize
-      cards, @cards, @empty = @cards, [], true
+      cards, @cards, @empty, @stack = @cards, [], true, 0
       cards
     end
 
     def hand cards = []
       return nil if cards.empty? && @cards.empty?
-      cards.concat(@cards).combination(5) do |h|
-          #
+      cards.concat(@cards).combination(5).to_a.inject do |hand, cards|
+        [hand, Hand.new(cards)].max
       end
+    end
+
+    def bet sum
+      sum = @stack if @stack < sum
+      @stack -= sum
+      sum
     end
 
   end
@@ -151,11 +157,12 @@ module BeatMe
     attr_reader :cards, :places
 
     MAX_PLAYERS = 5
+    START_STACK = 300
+    BLIND = 30
 
     def initialize
-      @game = :off
       @places = Array.new(MAX_PLAYERS){ |i| Place.new }
-      @cards = []
+      @cards, @dealer, @game = [], nil, :off
       Card::FACES[1..-1].each_index do |f|
         Card::SUITS.each_index do |s|
           @cards << Card.new(f, s)
@@ -168,13 +175,13 @@ module BeatMe
     end
 
     def busy_places
-      @places.size - self.empty_places
+      @places.size - empty_places
     end
 
     def to_s
       "cards: #{@cards.size}<br>\
       game: #{@game}<br>\
-      places: #{self.empty_places} of #{@places.size} is empty"
+      places: #{empty_places} of #{@places.size} is empty"
     end
 
     def sign_in key = nil
@@ -186,20 +193,49 @@ module BeatMe
         end
       end
       @places[key].take
+      start if busy_places > 1
+      @places[key]
     end
 
     def sign_out place
-      if !place.empty?
+      unless place.empty?
         @cards = place.realize + @cards
-        @game = :off if self.busy_places <= 1
+        @game = :off if busy_places <= 1
       end
     end
 
     def start
-      if @game == :off && self.busy_places > 1
+      if @game == :off && busy_places > 1
         @cards.shuffle!
-        @places.each{ |place| place.cards = @cards.pop(2) }
+        @places.rotate(-(@dealer + 1 || 0)).each_with_index do |place, i| 
+          @dealer = i and break unless place.empty?
+        end
+        @bank = 0
+        deal_cards
+        set_blinds
         @game = :on
+      end
+    end
+
+    def deal_cards
+      @places.rotate(-@dealer-1).each_with_index do |place, i|
+        place.cards = @cards.pop(2) unless place.empty?
+      end
+    end
+
+    def set_blinds
+      @place.rotate(-@dealer-1).cycle(2).to_a.inject do |b, place|
+        if place.empty?
+          b
+        else
+          if b < 2
+            place.bet BLIND
+          else
+            @turn = @places.index(place)
+            break
+          end
+          b + 1
+        end
       end
     end
 

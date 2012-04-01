@@ -3,7 +3,7 @@ h2 first and only table
 p == table
 .table
   - table.places.each_with_index do |place, i|
-    div = "place ##{i}: #{place.empty? ? 'empty' : 'busy'}" \
+    div = "place ##{i+1}: #{place.empty? ? 'empty' : 'busy'}" \
       "#{place === my_place ? ' it\'s me' : ''}"
 - unless my_place
   a href="#{http.route :signin}" sign in
