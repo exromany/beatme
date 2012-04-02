@@ -10,7 +10,7 @@ class App
   http.map
 
   view.engine :Slim
-  view.layout :main
+  view.layout :main, :index
 
   http.before do
     $table = BeatMe::Table.new unless $table
@@ -18,6 +18,15 @@ class App
 
   def index
     view.render table: $table, my_place: http.session[:place]
+  end
+
+  def assets * args
+    case args[0]
+    when 'scss'
+      view.render_scss_view "assets/#{ args.join '/' }"
+    else
+      http.send_file "./view/assets/#{ args.join '/' }"
+    end
   end
 
   def signin

@@ -118,7 +118,7 @@ module BeatMe
   end
 
   class Place
-    attr_accessor :cards
+    attr_accessor :cards, :stack
 
     def initialize
       @empty, @cards, @stack = true, [], 0
@@ -154,7 +154,7 @@ module BeatMe
   end
 
   class Table
-    attr_reader :cards, :places
+    attr_reader :cards, :places, :turn, :dealer
 
     MAX_PLAYERS = 5
     START_STACK = 300

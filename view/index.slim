@@ -1,11 +1,23 @@
-h1 BeatMe
-h2 first and only table
-p == table
-.table
+header BeatMe
+#bank Bank
+#cards cards
+#places
   - table.places.each_with_index do |place, i|
-    div = "place ##{i+1}: #{place.empty? ? 'empty' : 'busy'}" \
-      "#{place === my_place ? ' it\'s me' : ''}"
-- unless my_place
-  a href="#{http.route :signin}" sign in
-- else
-  a href="#{http.route :signout}" sign out
+    - classes = ['place']
+    - classes << 'active' if table.turn == i
+    - classes << 'me' if place == my_place
+    - classes << 'dealer' if table.dealer == i
+    - classes << 'empty' if place.empty?
+    div class="#{ classes.join ' ' }"
+      .title = "##{ i + 1 }"
+      .status = place.empty? ? 'empty' : 'in game'
+      - unless place.empty?
+        .stack rel='tooltip' title='stack' = place.stack
+        - if place === my_place 
+          a href="#{ http.route :signout }" sign out
+      - else 
+        - unless my_place
+          a href="#{ http.route :signin, place: i + 1 }" sign in
+
+javascript:
+  $('[rel=tooltip]').tooltip()

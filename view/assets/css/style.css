@@ -1,0 +1,49 @@
+#container {
+  width: 640px;
+  margin: 30px auto;
+  padding: 14px;
+}
+header {
+  font-size: 36px;
+  font-weight: bold;
+  line-height: 40px;
+  text-align: center;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, .1), 0 0 30px rgba(0, 0, 0, .125);
+  padding-bottom: 10px;
+}
+#bank, #cards {
+  padding: 6px 0;
+  text-align: center
+}
+#places {
+  margin-top: 20px;
+}
+.place > * {
+  display: inline-block;
+  margin: 0 30px;
+}
+.place > a {
+  float: right;
+}
+.place {
+  padding: 10px;
+  margin: 0 4px;
+  border-radius: 5px;
+}
+.place:hover {
+  background: #dff0d8;
+}
+.place.empty {
+  color: #bbb;
+}
+.place.me {
+  background: #d9edf7;
+}
+.place.dealer .title:before {
+  content: "D";
+  position: absolute;
+  margin-left: -20px;
+  font-size: 14px;
+  font-weight: bold;
+  color: #b94a48;
+}
