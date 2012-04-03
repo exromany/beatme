@@ -118,7 +118,8 @@ module BeatMe
   end
 
   class Place
-    attr_accessor :cards, :stack
+    attr_accessor :cards
+    attr_reader :amount, :stack, :action
 
     def initialize
       @empty, @cards, @stack = true, [], 0
@@ -129,12 +130,13 @@ module BeatMe
     end
 
     def take
-      @stack, @empty = Table::START_STACK, false
+      @stack, @empty, @amount = Table::START_STACK, false, 0
       self
     end
 
     def realize
-      cards, @cards, @empty, @stack = @cards, [], true, 0
+      cards, @cards, @empty = @cards, [], true
+      @amount = @stack = 0
       cards
     end
 
@@ -148,13 +150,18 @@ module BeatMe
     def bet sum
       sum = @stack if @stack < sum
       @stack -= sum
-      sum
+      @amount = sum
+    end
+
+    def trush_amount
+      amount, @amount = @amount || 0, 0
+      amount
     end
 
   end
 
   class Table
-    attr_reader :cards, :places, :turn, :dealer
+    attr_reader :cards, :places, :turn, :dealer, :game
 
     MAX_PLAYERS = 5
     START_STACK = 300
@@ -200,43 +207,43 @@ module BeatMe
     def sign_out place
       unless place.empty?
         @cards = place.realize + @cards
-        @game = :off if busy_places <= 1
+        finish if busy_places <= 1
       end
     end
 
     def start
       if @game == :off && busy_places > 1
         @cards.shuffle!
-        @places.rotate(-(@dealer || -1) - 1).each_with_index do |place, i|
-          @dealer = i and break unless place.empty?
-        end
         @bank = 0
-        deal_cards
-        set_blinds
+        count, f = busy_places + 1, 0
+        @places.rotate(-(@dealer || -1) - 1).cycle(2).to_a.each do |place|
+          unless place.empty?
+            case f
+            when 0
+              @dealer = @places.index place
+            when 1..count
+              place.bet(BLIND) if f < 3
+              @turn = @places.index(place) if f == 3
+              place.cards = @cards.pop(2) if place.cards.empty?
+            else
+              break
+            end
+            f += 1
+          end
+        end
         @game = :on
       end
     end
 
-    def deal_cards
-      @places.rotate(-@dealer-1).each_with_index do |place, i|
-        place.cards = @cards.pop(2) unless place.empty?
-      end
+    def update_bank
+      @places.each { |place| @bank += place.trush_amount }
     end
 
-    def set_blinds
-      @places.rotate(-@dealer-1).cycle(2).to_a.inject do |b, place|
-        if place.empty?
-          b
-        else
-          if b < 2
-            place.bet BLIND
-          else
-            @turn = @places.index(place)
-            break
-          end
-          b + 1
-        end
-      end
+    def finish
+      if @game == :on
+        @dealer = @turn = nil
+        update_bank
+        @game = :off
     end
 
   end

@@ -1,18 +1,21 @@
 header BeatMe
-#bank Bank
-#cards cards
+#bank = table.game
+#cards = table.cards.size
 #places
   - table.places.each_with_index do |place, i|
     - classes = ['place']
-    - classes << 'active' if table.turn == i
+    - classes << 'active' if table.turn == i && table.game == :on
     - classes << 'me' if place == my_place
-    - classes << 'dealer' if table.dealer == i
+    - classes << 'dealer' if table.dealer == i && table.game == :on
     - classes << 'empty' if place.empty?
     div class="#{ classes.join ' ' }"
       .title = "##{ i + 1 }"
       .status = place.empty? ? 'empty' : 'in game'
       - unless place.empty?
         .stack rel='tooltip' title='stack' = place.stack
+        /.action rel='tooltip' title='last action' = place.action
+        - if table.game == :on
+          .amoun rel='tooltip' title='amount' = place.amount
         - if place === my_place 
           a href="#{ http.route :signout }" sign out
       - else 
