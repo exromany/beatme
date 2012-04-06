@@ -122,21 +122,27 @@ module BeatMe
     attr_reader :amount, :stack, :action
 
     def initialize
-      @empty, @cards, @stack = true, [], 0
+      @empty, @cards = true, []
+      @stack = @amount = @full_amount = 0
     end
 
     def empty?
       @empty
     end
 
-    def take
-      @stack, @empty, @amount = Table::START_STACK, false, 0
+    def play?
+      !@empty && @cards.any?
+    end
+
+    def take sum
+      @stack, @empty = sum, false
+      @amount = @full_amount = 0
       self
     end
 
     def realize
       cards, @cards, @empty = @cards, [], true
-      @amount = @stack = 0
+      @stack = @amount = @full_amount = 0
       cards
     end
 
@@ -155,6 +161,7 @@ module BeatMe
 
     def trush_amount
       amount, @amount = @amount || 0, 0
+      @full_amount += amount
       amount
     end
 
@@ -163,12 +170,13 @@ module BeatMe
   class Table
     attr_reader :cards, :places, :turn, :dealer, :game
 
-    MAX_PLAYERS = 5
-    START_STACK = 300
-    BLIND = 30
-
     def initialize
-      @places = Array.new(MAX_PLAYERS){ |i| Place.new }
+      @max_players = 5
+      @start_stack = 300
+      @m_blind = 10
+      @blind = 20
+
+      @places = Array.new(@max_players){ |i| Place.new }
       @cards, @dealer, @game = [], nil, :off
       Card::FACES[1..-1].each_index do |f|
         Card::SUITS.each_index do |s|
@@ -185,6 +193,10 @@ module BeatMe
       @places.size - empty_places
     end
 
+    def in_game
+      @places.select{ |place| place.play? }.size
+    end
+
     def to_s
       "cards: #{@cards.size}<br>\
       game: #{@game}<br>\
@@ -194,12 +206,9 @@ module BeatMe
     def sign_in key = nil
       if !key.is_a?(Integer) || !key.between?(1, @places.size) ||
         !@places[key].empty?
-        key = nil
-        @places.each_with_index do |place, i|
-          key = i and break if place.empty?
-        end
+        key = @places.index( @places.find{ |place| place.empty? } )
       end
-      @places[key].take
+      @places[key].take(@start_stack) if key
       start if busy_places > 1
       @places[key]
     end
@@ -211,6 +220,8 @@ module BeatMe
       end
     end
 
+    private
+
     def start
       if @game == :off && busy_places > 1
         @cards.shuffle!
@@ -218,21 +229,31 @@ module BeatMe
         count, f = busy_places + 1, 0
         @places.rotate(-(@dealer || -1) - 1).cycle(2).to_a.each do |place|
           unless place.empty?
-            case f
-            when 0
-              @dealer = @places.index place
-            when 1..count
-              place.bet(BLIND) if f < 3
-              @turn = @places.index(place) if f == 3
-              place.cards = @cards.pop(2) if place.cards.empty?
-            else
-              break
-            end
+            break if f > count
+            @dealer = @places.index(place) if f == 0
+            place.bet @m_blind if f == 1
+            place.bet @blind if f == 2
+            @wait_to = @turn = @places.index place if f == 3
+            place.cards = @cards.pop(2) if place.cards.empty? && f > 0
             f += 1
           end
         end
         @game = :on
       end
+    end
+
+    def next_turn
+      @turn = @places.rotate(-@turn - 1).find{ |place| place.play? }
+      @wait_to = nil if @turn == @wait_to
+      next_round and return 0 if @wait_to.nil? && equal_amounts
+      next_turn if @places[@turn].stack == 0
+    end
+
+    def equal_amounts
+      max = @places.max_by{ |place| place.amount }.amount
+      @places.find do |place|
+        place.play? && place.amount < max && place.stack > 0
+      end.empty?
     end
 
     def update_bank
@@ -244,6 +265,7 @@ module BeatMe
         @dealer = @turn = nil
         update_bank
         @game = :off
+      end
     end
 
   end
