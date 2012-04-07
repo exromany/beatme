@@ -33,3 +33,16 @@ class App
   end
 
 end
+
+module ViewHelper
+
+  FACES = %w(2 3 4 5 6 7 8 9 10 J Q K A)
+  SUITS = %w(&spades; &clubs; &diams; &hearts;)
+
+  def color_cards cards
+    cards.map do |card|
+      color = card.suit >= 2 ? 'red' : 'black'
+      "<span class='card #{color}'>#{FACES[card.face] + SUITS[card.suit]}</span>"
+    end.join(' ')
+  end
+end

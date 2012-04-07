@@ -220,6 +220,23 @@ module BeatMe
       end
     end
 
+    def actions
+      return nil if @game == :off
+      max = max_amount
+      place = @places[@turn]
+
+      call = [max - place.amount, place.stack].min
+      bet = [place.stack, @blind].min .. place.stack
+      rais = [place.stack, @blind + call].min .. place.stack
+
+      actions = { :fold => nil }
+      actions[:check] = 0 if call == 0
+      actions[:call] = call if call > 0
+      actions[:bet] = bet if max == 0
+      actions[:raise] = rais if max > 0 && place.stack > call
+      actions
+    end
+
     private
 
     def start
@@ -249,8 +266,12 @@ module BeatMe
       next_turn if @places[@turn].stack == 0
     end
 
+    def max_amount
+      @places.max_by{ |place| place.amount }.amount
+    end
+
     def equal_amounts
-      max = @places.max_by{ |place| place.amount }.amount
+      max = max_amount
       @places.find do |place|
         place.play? && place.amount < max && place.stack > 0
       end.empty?

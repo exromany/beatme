@@ -30,18 +30,13 @@ header {
   margin: 0 4px;
   border-radius: 5px;
 }
-.place:hover {
-  background: #dff0d8;
+.place:hover { background: #dff0d8; }
+.place.empty { color: #bbb; }
+.place.me { background: #d9edf7; }
+.place.active { background: #f2dede; }
+.place.active.my {
+  /*background: */
 }
-.place.empty {
-  color: #bbb;
-}
-.place.me {
-  background: #d9edf7;
-}
-.place.active {
-  background: red;
-  }
 .place.dealer .title:before {
   content: "D";
   position: absolute;
@@ -50,3 +45,5 @@ header {
   font-weight: bold;
   color: #b94a48;
 }
+.card.red { color: red; }
+.card.black { color: black; }
