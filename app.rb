@@ -2,7 +2,7 @@ require 'slim'
 require './beatme'
 
 Presto::View.register :Slim, Slim::Template
-Presto.http.session_ttl 1200
+Presto.http.session.ttl 1200
 
 class App
   include Presto::Api
