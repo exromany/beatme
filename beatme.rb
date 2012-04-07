@@ -4,7 +4,7 @@ module BeatMe
     attr_reader :face, :suit
 
     SUITS = %w(s c d h)
-    FACES = %w(L 2 3 4 5 6 7 8 9 T J Q K A)
+    FACES = %w(2 3 4 5 6 7 8 9 T J Q K A)
 
     def initialize face, suit
       @face, @suit = face, suit
@@ -95,7 +95,7 @@ module BeatMe
       faces, suits = cards.transpose
       flush = suits.uniq.size == 1
       straight = faces == (faces[0]...faces[0] + 5).to_a
-      alt_faces = faces.map{ |f| f == Card::FACES.size - 1 ? 0 : f}.sort
+      alt_faces = faces.map{ |f| f == Card::FACES.size - 1 ? -1 : f}.sort
       if !straight && alt_faces == (alt_faces[0]...alt_faces[0] + 5).to_a
         straight = true
         cards.rotate!(-1)
@@ -178,7 +178,7 @@ module BeatMe
 
       @places = Array.new(@max_players){ |i| Place.new }
       @cards, @dealer, @game = [], nil, :off
-      Card::FACES[1..-1].each_index do |f|
+      Card::FACES.each_index do |f|
         Card::SUITS.each_index do |s|
           @cards << Card.new(f, s)
         end

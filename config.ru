@@ -8,5 +8,6 @@ map '/assets' do
 end
 
 map '/' do
+  #use Rack::Reloader
   run Presto::App.new { mount App }.app
 end

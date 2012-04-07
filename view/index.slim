@@ -1,6 +1,6 @@
 header BeatMe
 #bank = table.game
-#cards = table.cards.size
+#cards = table.cards
 #places
   - table.places.each_with_index do |place, i|
     - classes = ['place']
@@ -16,11 +16,12 @@ header BeatMe
         /.action rel='tooltip' title='last action' = place.action
         - if table.game == :on
           .amoun rel='tooltip' title='amount' = place.amount
+          .cards = place.cards if place == my_place
         - if place === my_place 
           a href="#{ http.route :signout }" sign out
       - else 
         - unless my_place
-          a href="#{ http.route :signin, place: i + 1 }" sign in
+          a href="#{ http.route :signin, :place => 1 }" sign in
 
 javascript:
   $('[rel=tooltip]').tooltip()
