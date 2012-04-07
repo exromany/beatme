@@ -1,4 +1,12 @@
+require 'presto'
 require './app'
 
 Presto.http.encoding 'UTF-8'
-run Presto::App.new { mount App }.app
+
+map '/assets' do
+  run Rack::Directory.new 'public'
+end
+
+map '/' do
+  run Presto::App.new { mount App }.app
+end
