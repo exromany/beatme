@@ -233,7 +233,7 @@ module BeatMe
             @dealer = @places.index(place) if f == 0
             place.bet @m_blind if f == 1
             place.bet @blind if f == 2
-            @wait_to = @turn = @places.index place if f == 3
+            @wait_to = @turn = @places.index(place) if f == 3
             place.cards = @cards.pop(2) if place.cards.empty? && f > 0
             f += 1
           end
