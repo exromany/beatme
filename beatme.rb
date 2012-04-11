@@ -118,11 +118,10 @@ module BeatMe
   end
 
   class Place
-    attr_accessor :cards
-    attr_reader :amount, :stack, :action
+    attr_reader :cards :amount, :stack, :action
 
     def initialize
-      @empty, @cards = true, []
+      @fold, @empty, @cards = true, true, []
       @stack = @amount = @full_amount = 0
     end
 
@@ -131,7 +130,11 @@ module BeatMe
     end
 
     def play?
-      !@empty && @cards.any?
+      !@empty && @cards.any? && !@fold
+    end
+
+    def fold?
+      !@empty? && @cards.any? && @fold
     end
 
     def take sum
@@ -141,14 +144,31 @@ module BeatMe
     end
 
     def realize
-      cards, @cards, @empty = @cards, [], true
       @stack = @amount = @full_amount = 0
+      @empty = true
+      remove_cards
+    end
+
+    def cards= cards
+      @full_amount = 0;
+      @hand, @fold = nil, false
+      @cards = cards
+    end
+
+    def remove_cards
+      fold
+      cards, @cards = @cards, []
       cards
     end
 
+    def fold
+      @fold = true
+    end
+
     def hand cards = []
+      return @hand unless @hand.nil?
       return nil if cards.empty? && @cards.empty?
-      cards.concat(@cards).combination(5).to_a.inject do |hand, cards|
+      @hand = cards.concat(@cards).combination(5).to_a.inject do |hand, cards|
         [hand, Hand.new(cards)].max
       end
     end
@@ -163,6 +183,10 @@ module BeatMe
       amount, @amount = @amount || 0, 0
       @full_amount += amount
       amount
+    end
+
+    def win sum
+      @stack += sum
     end
 
   end
@@ -215,7 +239,7 @@ module BeatMe
 
     def sign_out place
       unless place.empty?
-        @cards = place.realize + @cards
+        recycle(place.realize)
         finish if busy_places <= 1
       end
     end
@@ -229,20 +253,40 @@ module BeatMe
       bet = [place.stack, @blind].min .. place.stack
       rais = [place.stack, @blind + call].min .. place.stack
 
-      actions = { :fold => nil }
-      actions[:check] = 0 if call == 0
+      actions = { :fold => 0..0 }
+      actions[:check] = 0..0 if call == 0
       actions[:call] = call if call > 0
       actions[:bet] = bet if max == 0
       actions[:raise] = rais if max > 0 && place.stack > call
       actions
     end
 
+    def do_action action, sum = 0
+      return nil if @game == :off
+      place = @places[@turn]
+      if action == :fold
+        place.fold
+      else
+        available = actions[action]
+        if !avaible.nil? && available.cover?(sum)
+          place.bet(sum)
+        else
+          return nil
+        end
+      end
+      next_turn
+    end
+
     private
+
+    def recycle cards
+      @cards = cards + @cards
+    end
 
     def start
       if @game == :off && busy_places > 1
         @cards.shuffle!
-        @bank = 0
+        init_bank
         count, f = busy_places + 1, 0
         @places.rotate(-(@dealer || -1) - 1).cycle(2).to_a.each do |place|
           unless place.empty?
@@ -255,15 +299,43 @@ module BeatMe
             f += 1
           end
         end
+        @round = 0
         @game = :on
       end
     end
 
+    def init_bank
+        @bank, @wins = 0, []
+        @bank_for = Array.new(@places.size, 0)
+    end
+
     def next_turn
-      @turn = @places.rotate(-@turn - 1).find{ |place| place.play? }
+      turn, @turn = @turn, next_after(@turn)
+      finish if turn == @turn
       @wait_to = nil if @turn == @wait_to
       next_round and return 0 if @wait_to.nil? && equal_amounts
       next_turn if @places[@turn].stack == 0
+    end
+
+    def next_round
+      @round += 1
+      update_bank
+      case @round
+      when 1
+        @public_cards = @cards.pop(3)
+      when 2..3
+        @public_cards = @cards.pop(1)
+      else
+        finish
+      end
+      @turn = next_after @dealer if @round < 4
+    end
+
+    # TODO: конец партии - справедливая раздача выигрыша
+    # TODO: рефакторинг
+
+    def next_after index
+      @places.index( @places.rotate(-index - 1).find{ |place| place.play? } )
     end
 
     def max_amount
@@ -278,15 +350,39 @@ module BeatMe
     end
 
     def update_bank
+      acc = 0
+      @places.map { |place| place.amount }.unique.sort.each do |amount|
+        count = @places.count{ |place| place.amount >= amount }
+        sum, acc = amount - acc, amount
+        @places.each_with_index do |place, index|
+          @bank_for[index] += sum * count if place.amount >= amount
+        end
+      end
       @places.each { |place| @bank += place.trush_amount }
     end
 
     def finish
       if @game == :on
-        @dealer = @turn = nil
+        @game = :win
         update_bank
-        @game = :off
+        groups = @places.select{ |place| place.play? }.
+          sort_by{ |place| place.hand }.reverse.group_by{ |place| place.hand }
+        groups.first do |group, places|
+          size = places.size
+          places.shuffle.each_with_index do |place, index|
+            sum = @bank / (size - index)
+            @bank -= sum
+            @wins << [place, sum]
+            place.win(sum)
+          end
+        end
+        @places.each{ |place| recycle(place.remove_cards) }
+        @dealer = @turn = nil
       end
+      # delay for 20 seconds
+      # TODO: new thread
+      sleep 20
+      start
     end
 
   end
