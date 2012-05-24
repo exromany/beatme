@@ -1,0 +1,58 @@
+doctype html
+html
+  head
+    meta charset='UTF-8'
+    title 'BeatMe'
+    script src='assets/js/websocket/swfobject.js'
+    script src='assets/js/websocket/web_socket.js'
+    script src='assets/js/jquery-1.7.2.min.js'
+    script src='assets/js/underscore-min.js'
+    script src='assets/js/backbone-min.js'
+
+    script type='text/template' id='_table'
+      #table
+        #bank <%= bank %>
+        #cards <%= cards %>
+        #places <%= places %>
+
+    script type='text/template' id='_place'
+      .place empty
+
+  body
+    h1 BeatMe
+
+    coffee:
+      Place = Backbone.Model.extend
+        defaults:
+          status: 'empty'
+
+      Places = Backbone.Collection.extend
+        model: Place
+        initialize: (places) ->
+          this.add place for place in places
+
+      Table = Backbone.Model.extend
+        initialize: (table) ->
+          places = table.places
+          delete table.places
+          this.set table
+          this.set {places: new Places places}
+
+      TableView = Backbone.View.extend
+        _table: $('#_table').html()
+
+      PlaceView = Backbone.View.extend
+        _place: $('#_place').html()
+
+      WEB_SOCKET_SWF_LOCATION = 'assets/js/websocket/WebSocketMain.swf'
+      ws = new WebSocket "ws://#{document.location.host}/ws", ['beatme']
+      ws.onopen = ->
+        console.log 'connected'
+      ws.onclose = ->
+        console.log 'closed'
+      ws.onmessage = (e) ->
+        console.log e
+        response = JSON.parse e.data
+        console.log response
+        if response.table
+          window.table = new Table response.table

@@ -118,7 +118,7 @@ module BeatMe
   end
 
   class Place
-    attr_reader :cards :amount, :stack, :action
+    attr_reader :cards, :amount, :stack, :action
 
     def initialize
       @fold, @empty, @cards = true, true, []
@@ -134,7 +134,17 @@ module BeatMe
     end
 
     def fold?
-      !@empty? && @cards.any? && @fold
+      !@empty && @cards.any? && @fold
+    end
+
+    def to_hash ext = false
+      hash = { 
+        status: (@empty ? :empty : (@cards.empty? ? :wait :(@fold ? :fold : :play))).to_s
+      }
+      hash[:stack] = @stack unless @empty
+      hash[:amount] = @amount unless @empty
+      hash[:cards] = @cards if ext
+      hash
     end
 
     def take sum
@@ -225,6 +235,24 @@ module BeatMe
       "cards: #{@cards.size}<br>\
       game: #{@game}<br>\
       places: #{empty_places} of #{@places.size} is empty"
+    end
+
+    def to_hash ext_place = nil
+      hash = {
+        game: @game.to_s,
+        places_total: @places.size,
+        places_empty: empty_places,
+        places: {},
+      }
+      hash[:round] = @round if @game != :off
+      hash[:bank] = @bank if @game != :off
+      @places.each_with_index do |place, index|
+        place_hash = place.to_hash(place == ext_place)
+        place_hash[:dealer] = true if @dealer == index
+        place_hash[:turn] = true if @turn == index
+        hash[:places][index] = place_hash
+      end
+      hash
     end
 
     def sign_in key = nil

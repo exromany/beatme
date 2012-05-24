@@ -1,7 +1,10 @@
 source 'http://rubygems.org'
 
-#gem 'presto', :git => 'git://github.com/slivu/presto.git'
-gem 'presto'
 gem 'thin'
+gem 'faye-websocket'
+gem 'presto'
+
 gem 'slim'
-#gem 'sass'
+gem 'coffee-script'
+gem 'therubyracer'
+gem 'rack-coffee'
